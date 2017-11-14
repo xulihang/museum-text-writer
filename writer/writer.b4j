@@ -20,7 +20,6 @@ Sub Process_Globals
 	Private fx As JFX
 	Private MainForm As Form
 	Private TextArea1 As TextArea
-	Private newWord As String
 	Private simpleWordList As List
 	Private lemmaMap As Map
 End Sub
@@ -40,7 +39,6 @@ End Sub
 
 Sub init
 	lemmaMap.Initialize
-	newWord=""
 	simpleWordList=File.ReadList(File.DirAssets,"wordlist.txt")
 	
 	'加载lemma词典
@@ -63,12 +61,16 @@ End Sub
 Sub TextArea1_TextChanged (Old As String, New As String)
 
 	If New.Length> Old.Length Then 
+		
 		New=New.Replace(CRLF," ")
 		Old=Old.Replace(CRLF," ")
 		Log("New:"&New)
+		
+		Dim newWord As String
 		Dim su As ApacheSU
 		Dim input As String
 		input=New.Replace(Old,"")
+
 		If input=" " Or input="." Or input="!" Or input="?" Then
 				
 				Dim wordList As List
@@ -79,20 +81,16 @@ Sub TextArea1_TextChanged (Old As String, New As String)
 				newWord=newWord.Replace(".","")
 			    newWord=newWord.Replace("!","")
 			    newWord=newWord.Replace("?","")
+				
 				Log(newWord)
 				newWord=newWord.Trim
 				newWord=newWord.ToLowerCase
 				newWord=lemmatizeWord(newWord)
+				
 			    Log(newWord)
-				If simpleWordList.IndexOf(newWord)=-1 Then
-				    Dim newWordList As List
-					newWordList.Initialize
-					For i=0 To wordList.Size-2
-						newWordList.Add(wordList.Get(i))
-					Next
-					
-				    Log(newWordList)
-				    TextArea1.Text=joinText(newWordList," ")
+				If simpleWordList.IndexOf(newWord)=-1 Then					
+				    TextArea1.Text=su.Left(TextArea1.Text,TextArea1.Text.Length-1)
+				    TextArea1.Text=su.Left(TextArea1.Text,TextArea1.Text.LastIndexOf(" "))
 				    TextArea1.SetSelection(TextArea1.Text.Length,TextArea1.Text.Length)
 				End If
 		End If
