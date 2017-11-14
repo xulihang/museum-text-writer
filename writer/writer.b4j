@@ -1,0 +1,129 @@
+﻿Version=5.51
+AppType=JavaFX
+NumberOfModules=0
+Build1=Default,b4j.example
+NumberOfFiles=3
+File1=lemma.dat
+File2=main.bjl
+File3=wordlist.txt
+NumberOfLibraries=3
+Library1=jcore
+Library2=jfx
+Library3=apachestringutilsb4j
+@EndOfDesignText@
+#Region Project Attributes 
+	#MainFormWidth: 600
+	#MainFormHeight: 600 
+#End Region
+
+Sub Process_Globals
+	Private fx As JFX
+	Private MainForm As Form
+	Private TextArea1 As TextArea
+	Private newWord As String
+	Private simpleWordList As List
+	Private lemmaMap As Map
+End Sub
+
+Sub AppStart (Form1 As Form, Args() As String)
+	MainForm = Form1
+	MainForm.RootPane.LoadLayout("main") 'Load the layout file.
+	MainForm.Show
+    init
+
+End Sub
+
+'Return true to allow the default exceptions handler to handle the uncaught exception.
+Sub Application_Error (Error As Exception, StackTrace As String) As Boolean
+	Return True
+End Sub
+
+Sub init
+	lemmaMap.Initialize
+	newWord=""
+	simpleWordList=File.ReadList(File.DirAssets,"wordlist.txt")
+	
+	'加载lemma词典
+	Dim textReader As TextReader
+	textReader.Initialize(File.OpenInput(File.DirAssets,"lemma.dat"))
+	Dim line As String
+	line=textReader.ReadLine
+	Dim su As ApacheSU
+	Do While line <> Null
+		Dim words As List
+		words=su.SplitWithSeparator(line,"   ")
+		For i=1 To words.Size-1
+			lemmaMap.Put(words.Get(i),words.Get(0))
+		Next
+		line=textReader.ReadLine
+	Loop
+	textReader.close
+End Sub
+
+Sub TextArea1_TextChanged (Old As String, New As String)
+
+	If New.Length> Old.Length Then 
+		New=New.Replace(CRLF," ")
+		Old=Old.Replace(CRLF," ")
+		Log("New:"&New)
+		Dim su As ApacheSU
+		Dim input As String
+		input=New.Replace(Old,"")
+		If input=" " Or input="." Or input="!" Or input="?" Then
+				
+				Dim wordList As List
+				wordList.Initialize
+				wordList=su.SplitWithSeparator(New," ")
+
+				newWord=wordList.Get(wordList.Size-1)
+				newWord=newWord.Replace(".","")
+			    newWord=newWord.Replace("!","")
+			    newWord=newWord.Replace("?","")
+				Log(newWord)
+				newWord=newWord.Trim
+				newWord=newWord.ToLowerCase
+				newWord=lemmatizeWord(newWord)
+			    Log(newWord)
+				If simpleWordList.IndexOf(newWord)=-1 Then
+				    Dim newWordList As List
+					newWordList.Initialize
+					For i=0 To wordList.Size-2
+						newWordList.Add(wordList.Get(i))
+					Next
+					
+				    Log(newWordList)
+				    TextArea1.Text=joinText(newWordList," ")
+				    TextArea1.SetSelection(TextArea1.Text.Length,TextArea1.Text.Length)
+				End If
+		End If
+		Log(input)
+	End If
+End Sub
+
+Sub TextArea1_MouseClicked (EventData As MouseEvent)
+	
+End Sub
+
+Sub TextArea1_FocusChanged (HasFocus As Boolean)
+	
+End Sub
+
+Sub joinText(wordList As List,sep As String) As String
+	Dim result As String
+	For Each word As String In wordList
+		result=result & word & sep
+	Next
+	Return result
+End Sub
+
+Sub lemmatizeWord(word As String) As String
+	If lemmaMap.ContainsKey(word) Then
+		Dim value As String
+	    value=lemmaMap.Get(word)
+	    If word<>value Then
+	        word=value
+		End If
+	End If
+
+	Return word
+End Sub
