@@ -1,21 +1,25 @@
 ﻿Version=5.51
 AppType=JavaFX
-NumberOfModules=0
+NumberOfModules=2
+Module1=SearchView
+Module2=TextFlow
 Build1=Default,b4j.example
-NumberOfFiles=8
+NumberOfFiles=9
 File1=chunks.txt
 File2=lemma.dat
 File3=lowerBanner.bjl
 File4=main.bjl
-File5=sentences_by_grammar.txt
-File6=sentences_by_usage.txt
-File7=upperBox.bjl
-File8=wordlist.txt
-NumberOfLibraries=4
+File5=SearchView.bjl
+File6=sentences_by_grammar.txt
+File7=sentences_by_usage.txt
+File8=upperBox.bjl
+File9=wordlist.txt
+NumberOfLibraries=5
 Library1=jcore
 Library2=jfx
 Library3=apachestringutilsb4j
 Library4=javaobject
+Library5=jreflection
 @EndOfDesignText@
 #Region Project Attributes 
 	#MainFormWidth: 600
@@ -32,10 +36,12 @@ Sub Process_Globals
 	Private MenuBar1 As MenuBar
 	Private Pane1 As Pane
 	Private ListView1 As ListView
-	Private ListView2 As ListView
+	'Private ListView2 As ListView
 	Private ComboBox1 As ComboBox
 	Private sentencesMap As Map
 	Private SplitPane1 As SplitPane
+	Private SearchView1 As SearchView
+	Private path As String
 End Sub
 
 Sub AppStart (Form1 As Form, Args() As String)
@@ -52,6 +58,7 @@ Sub Application_Error (Error As Exception, StackTrace As String) As Boolean
 End Sub
 
 Sub init
+	MainForm.Title="未命名 - "&MainForm.Title
 	SplitPane1.LoadLayout("upperBox")
 	SplitPane1.LoadLayout("lowerBanner")
 	lemmaMap.Initialize
@@ -145,18 +152,6 @@ Sub lemmatizeWord(word As String) As String
 	Return word
 End Sub
 
-Sub MenuBar1_Action
-    Dim mi As MenuItem
-	mi=Sender	
-	Log(mi.Text)
-	Select mi.Text
-		Case "关于"
-			fx.Msgbox(MainForm,"博物馆文章辅助写作工具"&CRLF&CRLF&"2017.11 徐力航","关于")
-		Case "_退出"
-			ExitApplication
-	End Select
-End Sub
-
 Sub ComboBox1_SelectedIndexChanged(Index As Int, Value As Object)
 	Log(Index)
 	ListView1.Items.Clear
@@ -211,8 +206,9 @@ End Sub
 
 Sub ListView1_MouseClicked (EventData As MouseEvent)
 	If ListView1.SelectedItem<>Null Then
-		ListView2.Items.Clear
-		
+		'ListView2.Items.Clear
+		Dim searchviewItems As List
+		searchviewItems.Initialize
 		For Each key In sentencesMap.Keys
 			Dim contentLabel As Label
 			contentLabel.Initialize("")
@@ -221,17 +217,69 @@ Sub ListView1_MouseClicked (EventData As MouseEvent)
 
 			If sentencesMap.Get(key)=ListView1.SelectedItem Then
 				contentLabel.Text=key
-				ListView2.Items.Add(contentLabel)
+				searchviewItems.Add(key)
+				'ListView2.Items.Add(contentLabel)
 			End If
+			
 			'Dim height As Double = MeasureMultilineTextHeight(contentLabel.Font,ListView2.Width,contentLabel.Text)
 		Next
-		
+		SearchView1.SetItems(searchviewItems)
+		SearchView1.showItems
 	End If
 End Sub
-Sub ListView2_MouseClicked (EventData As MouseEvent)
 
+Sub MenuBar1_Action
+	Dim mi As MenuItem
+	mi=Sender
+	Log(mi.Text)
+	Dim su As ApacheSU
+	
+	Select mi.Text
+		Case "_新建"
+			If TextArea1.Text<>"" Then
+				If fx.Msgbox2(MainForm,"新建文件将丢失现有改动，确定继续吗？","","确定","取消","",fx.MSGBOX_CONFIRMATION)=fx.DialogResponse.POSITIVE Then
+					Log("positive")
+					MainForm.Title="未命名 - "&su.SplitWithSeparator(MainForm.Title," - ")(1)
+					TextArea1.Text=""
+					path=""
+				End If
+			Else
+				MainForm.Title="未命名 - "&su.SplitWithSeparator(MainForm.Title," - ")(1)
+				TextArea1.Text=""
+				path=""
+			End If
+		Case "_保存"
+			If path="" Then
+			    Dim fc As FileChooser
+				fc.Initialize
+				fc.SetExtensionFilter("Text",Array As String("*.txt"))
+				Dim path As String
+				path=fc.ShowSave(MainForm)
+				Log(path)
+				If path<>"" Then
+					Dim filename As String
+					If path.Contains("\") Then
+						Dim list1 As List
+						list1=su.SplitWithSeparator(path,"\")
+						filename=list1.Get(list1.Size-1)
+					Else
+						Dim list1 As List
+						list1=su.SplitWithSeparator(path,"/")
+						filename=list1.Get(list1.Size-1)
+					End If
+					MainForm.Title=filename&" - "&su.SplitWithSeparator(MainForm.Title," - ")(1)
+					File.WriteString(path,"",TextArea1.Text)
+				End If
+			Else
+				File.WriteString(path,"",TextArea1.Text)
+			End If
+			
+		Case "关于"
+			fx.Msgbox(MainForm,"博物馆文章辅助写作工具"&CRLF&CRLF&"2017.11 徐力航","关于")
+		Case "_退出"
+			ExitApplication
+	End Select
 End Sub
-
 
 Sub MeasureMultilineTextHeight (Font As Font, Width As Double, Text As String) As Double
 	Dim jo As JavaObject = Me
