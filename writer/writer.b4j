@@ -2,14 +2,20 @@
 AppType=JavaFX
 NumberOfModules=0
 Build1=Default,b4j.example
-NumberOfFiles=3
-File1=lemma.dat
-File2=main.bjl
-File3=wordlist.txt
-NumberOfLibraries=3
+NumberOfFiles=8
+File1=chunks.txt
+File2=lemma.dat
+File3=lowerBanner.bjl
+File4=main.bjl
+File5=sentences_by_grammar.txt
+File6=sentences_by_usage.txt
+File7=upperBox.bjl
+File8=wordlist.txt
+NumberOfLibraries=4
 Library1=jcore
 Library2=jfx
 Library3=apachestringutilsb4j
+Library4=javaobject
 @EndOfDesignText@
 #Region Project Attributes 
 	#MainFormWidth: 600
@@ -22,6 +28,14 @@ Sub Process_Globals
 	Private TextArea1 As TextArea
 	Private simpleWordList As List
 	Private lemmaMap As Map
+	Private CheckBox1 As CheckBox
+	Private MenuBar1 As MenuBar
+	Private Pane1 As Pane
+	Private ListView1 As ListView
+	Private ListView2 As ListView
+	Private ComboBox1 As ComboBox
+	Private sentencesMap As Map
+	Private SplitPane1 As SplitPane
 End Sub
 
 Sub AppStart (Form1 As Form, Args() As String)
@@ -38,9 +52,13 @@ Sub Application_Error (Error As Exception, StackTrace As String) As Boolean
 End Sub
 
 Sub init
+	SplitPane1.LoadLayout("upperBox")
+	SplitPane1.LoadLayout("lowerBanner")
 	lemmaMap.Initialize
 	simpleWordList=File.ReadList(File.DirAssets,"wordlist.txt")
-	
+	ComboBox1.Items.Add("句子库_按用途")
+	ComboBox1.Items.Add("句子库_按语法")
+	ComboBox1.Items.Add("语块库")
 	'加载lemma词典
 	Dim textReader As TextReader
 	textReader.Initialize(File.OpenInput(File.DirAssets,"lemma.dat"))
@@ -61,18 +79,18 @@ End Sub
 Sub TextArea1_TextChanged (Old As String, New As String)
 
 	If New.Length> Old.Length Then 
-		
-		New=New.Replace(CRLF," ")
-		Old=Old.Replace(CRLF," ")
-		Log("New:"&New)
-		
-		Dim newWord As String
-		Dim su As ApacheSU
-		Dim input As String
-		input=New.Replace(Old,"")
+		If CheckBox1.Checked Then
+			New=New.Replace(CRLF," ")
+			Old=Old.Replace(CRLF," ")
+			Log("New:"&New)
+			
+			Dim newWord As String
+			Dim su As ApacheSU
+			Dim input As String
+			input=New.Replace(Old,"")
 
-		If input=" " Or input="." Or input="!" Or input="?" Then
-				
+			If input=" " Or input="." Or input="!" Or input="?" Then
+					
 				Dim wordList As List
 				wordList.Initialize
 				wordList=su.SplitWithSeparator(New," ")
@@ -93,8 +111,9 @@ Sub TextArea1_TextChanged (Old As String, New As String)
 				    TextArea1.Text=su.Left(TextArea1.Text,TextArea1.Text.LastIndexOf(" "))
 				    TextArea1.SetSelection(TextArea1.Text.Length,TextArea1.Text.Length)
 				End If
-		End If
+		    End If
 		Log(input)
+		End If
 	End If
 End Sub
 
@@ -125,3 +144,109 @@ Sub lemmatizeWord(word As String) As String
 
 	Return word
 End Sub
+
+Sub MenuBar1_Action
+    Dim mi As MenuItem
+	mi=Sender	
+	Log(mi.Text)
+	Select mi.Text
+		Case "关于"
+			fx.Msgbox(MainForm,"博物馆文章辅助写作工具"&CRLF&CRLF&"2017.11 徐力航","关于")
+		Case "_退出"
+			ExitApplication
+	End Select
+End Sub
+
+Sub ComboBox1_SelectedIndexChanged(Index As Int, Value As Object)
+	Log(Index)
+	ListView1.Items.Clear
+	
+	'Dim categoryList As List
+	Dim sentencesList As List
+	Select Index
+		Case 0
+			sentencesList=File.ReadList(File.DirAssets,"sentences_by_usage.txt")
+		Case 1
+			sentencesList=File.ReadList(File.DirAssets,"sentences_by_grammar.txt")
+		Case 2
+			sentencesList=File.ReadList(File.DirAssets,"chunks.txt")
+	End Select
+	sentencesMap=sentencesListToMap(sentencesList)
+	For Each category As String In sentencesMap.values
+		If ListView1.Items.IndexOf(category)=-1 Then
+			ListView1.Items.Add(category)
+		End If
+	Next
+	
+End Sub
+
+Sub sentencesListToMap(sentences As List) As Map
+	Dim map1 As Map
+	map1.Initialize
+	For Each line As String In sentences
+		Dim su As ApacheSU
+		Dim category,content As String
+		category=su.SplitWithSeparator(line,"	")(1)
+		content=su.SplitWithSeparator(line,"	")(0)
+		map1.Put(content,category)
+	Next
+	Return map1
+End Sub
+
+Sub getCategory(sentences As List) As List
+	Dim categoryList As List
+	categoryList.Initialize
+	For Each line In sentences
+		Dim su As ApacheSU
+		Dim category As String
+		category=su.SplitWithSeparator(line,"	")(1)
+		If categoryList.IndexOf(category)=-1 Then
+			categoryList.Add(category)
+		End If
+	Next
+
+	Return categoryList
+End Sub
+
+
+Sub ListView1_MouseClicked (EventData As MouseEvent)
+	If ListView1.SelectedItem<>Null Then
+		ListView2.Items.Clear
+		
+		For Each key In sentencesMap.Keys
+			Dim contentLabel As Label
+			contentLabel.Initialize("")
+			
+			contentLabel.WrapText=True
+
+			If sentencesMap.Get(key)=ListView1.SelectedItem Then
+				contentLabel.Text=key
+				ListView2.Items.Add(contentLabel)
+			End If
+			'Dim height As Double = MeasureMultilineTextHeight(contentLabel.Font,ListView2.Width,contentLabel.Text)
+		Next
+		
+	End If
+End Sub
+Sub ListView2_MouseClicked (EventData As MouseEvent)
+
+End Sub
+
+
+Sub MeasureMultilineTextHeight (Font As Font, Width As Double, Text As String) As Double
+	Dim jo As JavaObject = Me
+	Return jo.RunMethod("MeasureMultilineTextHeight", Array(Font, Text, Width))
+End Sub
+
+#if Java
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import javafx.scene.text.Font;
+import javafx.scene.text.TextBoundsType;
+public static double MeasureMultilineTextHeight(Font f, String text, double width) throws Exception {
+  Method m = Class.forName("com.sun.javafx.scene.control.skin.Utils").getDeclaredMethod("computeTextHeight",
+  Font.class, String.class, double.class, TextBoundsType.class);
+  m.setAccessible(true);
+  return (Double)m.invoke(null, f, text, width, TextBoundsType.LOGICAL);
+  }
+#End If
