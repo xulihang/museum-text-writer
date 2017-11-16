@@ -84,7 +84,7 @@ Sub init
 End Sub
 
 Sub TextArea1_TextChanged (Old As String, New As String)
-
+    File.WriteString(File.DirApp,"tmpfile",Old)
 	If New.Length> Old.Length Then 
 		If CheckBox1.Checked Then
 			New=New.Replace(CRLF," ")
@@ -172,6 +172,7 @@ Sub ComboBox1_SelectedIndexChanged(Index As Int, Value As Object)
 			ListView1.Items.Add(category)
 		End If
 	Next
+	ListView1.Items.Add("全部")
 	
 End Sub
 
@@ -209,20 +210,25 @@ Sub ListView1_MouseClicked (EventData As MouseEvent)
 		'ListView2.Items.Clear
 		Dim searchviewItems As List
 		searchviewItems.Initialize
-		For Each key In sentencesMap.Keys
-			Dim contentLabel As Label
-			contentLabel.Initialize("")
-			
-			contentLabel.WrapText=True
-
-			If sentencesMap.Get(key)=ListView1.SelectedItem Then
-				contentLabel.Text=key
+		If ListView1.SelectedItem="全部" Then
+			For Each key In sentencesMap.Keys
 				searchviewItems.Add(key)
-				'ListView2.Items.Add(contentLabel)
-			End If
-			
-			'Dim height As Double = MeasureMultilineTextHeight(contentLabel.Font,ListView2.Width,contentLabel.Text)
-		Next
+			Next
+		Else
+			For Each key In sentencesMap.Keys
+				'Dim contentLabel As Label
+				'contentLabel.Initialize("")
+				'contentLabel.WrapText=True
+
+				If sentencesMap.Get(key)=ListView1.SelectedItem Then
+					'contentLabel.Text=key
+					searchviewItems.Add(key)
+					'ListView2.Items.Add(contentLabel)
+				End If
+				
+				'Dim height As Double = MeasureMultilineTextHeight(contentLabel.Font,ListView2.Width,contentLabel.Text)
+			Next
+		End If
 		SearchView1.SetItems(searchviewItems)
 		SearchView1.showItems
 	End If
@@ -273,7 +279,8 @@ Sub MenuBar1_Action
 			Else
 				File.WriteString(path,"",TextArea1.Text)
 			End If
-			
+		Case "_撤销"
+			TextArea1.Text=File.ReadString(File.DirApp,"tmpfile")
 		Case "关于"
 			fx.Msgbox(MainForm,"博物馆文章辅助写作工具"&CRLF&CRLF&"2017.11 徐力航","关于")
 		Case "_退出"
