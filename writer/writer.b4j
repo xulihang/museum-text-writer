@@ -4,16 +4,18 @@ NumberOfModules=2
 Module1=SearchView
 Module2=TextFlow
 Build1=Default,b4j.example
-NumberOfFiles=9
+NumberOfFiles=11
 File1=chunks.txt
 File2=lemma.dat
 File3=lowerBanner.bjl
 File4=main.bjl
 File5=SearchView.bjl
 File6=sentences_by_grammar.txt
-File7=sentences_by_usage.txt
-File8=upperBox.bjl
-File9=wordlist.txt
+File7=sentences_by_grammar_tagged.txt
+File8=sentences_by_usage.txt
+File9=sentences_by_usage_tagged.txt
+File10=upperBox.bjl
+File11=wordlist.txt
 NumberOfLibraries=5
 Library1=jcore
 Library2=jfx
@@ -65,6 +67,8 @@ Sub init
 	simpleWordList=File.ReadList(File.DirAssets,"wordlist.txt")
 	ComboBox1.Items.Add("句子库_按用途")
 	ComboBox1.Items.Add("句子库_按语法")
+	ComboBox1.Items.Add("句子库_按用途带标注")
+	ComboBox1.Items.Add("句子库_按语法带标注")
 	ComboBox1.Items.Add("语块库")
 	'加载lemma词典
 	Dim textReader As TextReader
@@ -164,6 +168,10 @@ Sub ComboBox1_SelectedIndexChanged(Index As Int, Value As Object)
 		Case 1
 			sentencesList=File.ReadList(File.DirAssets,"sentences_by_grammar.txt")
 		Case 2
+			sentencesList=File.ReadList(File.DirAssets,"sentences_by_usage_tagged.txt")
+		Case 3
+			sentencesList=File.ReadList(File.DirAssets,"sentences_by_grammar_tagged.txt")
+		Case 4
 			sentencesList=File.ReadList(File.DirAssets,"chunks.txt")
 	End Select
 	sentencesMap=sentencesListToMap(sentencesList)
